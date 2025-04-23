@@ -1,59 +1,86 @@
 import discord
-import discord.ext
-import discord.ext.commands
-from discord.ext import tasks
-from discord.ext.commands import has_permissions
-from discord.ext.commands import has_role
-import random
+from discord.ext import commands
 import time
-import json
 import os
-import asyncio
+import dotenv
+
+dotenv.load_dotenv()
 
 # Verwaltungsrollen
-Adminrolle = ""
-Moderation = ""
-Vorstand = ""
-Mitglied = ""
+Adminrolle = 1360736476228354150
+Moderation = 1360746776306647210
+Devrolle = 1360746813199614192
+Vorstand = 1360749293463666861
+Mitglied = 1360747087322681548
 
-#Channel
-Rollen = ""
+# Channel IDs
+Rollen = ""  
 Regeln = ""
 Verifizierung = ""
 
-#Zusatzrollen
-
-#---------------------------------------------------------------------------------------------------------------------------------------------
+# Timer für Bot-Laufzeit
 start_time = None
+
+# Intents konfigurieren
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
+intents.presences = True
 
+# Bot initialisieren
 client = discord.Bot(intents=intents)
 
-@client.event
-async def on_ready():
-    print(f'We have logged in as {client.user}')
-    
+
+cogs_list = [
+    'ags',
+    'zusatz',
+    'embeds'
+]
+
+for cog in cogs_list:
+    client.load_extension(f'cogs.{cog}')
+
+def start_timer():
+    """Startet den Timer."""
+    global start_time
+    start_time = time.time()
+
 def get_runtime():
     """Gibt die Laufzeit des Bots in Sekunden zurück."""
     global start_time
     if start_time is None:
-        pass
-    else:
-        current_time = time.time()
-        runtime = current_time - start_time
-        return round(runtime, 2)
+        return 0
+    current_time = time.time()
+    runtime = current_time - start_time
+    return round(runtime, 2)
 
-#----------------------------------------------------------------------------------------------------------------------------------------------------
-#Commands
+start_timer()
 
-@client.command(description="Sendet eine Testnachricht")
-async def test(interaction):
-    rounded_latency = round(client.latency)
-    embed = discord.Embed(title="Bot Status", color=discord.Color.green(),
-    description=f"**Der bot ist Online** \nPing: **{rounded_latency}** \nOnline: **{get_runtime()}** Sekunden")
-    await interaction.response.send_message(embed=embed,ephemeral=False)
+@client.event
+async def on_ready():
+    print(f'Erfolgreich eingeloggt als {client.user}')
+    print(f'Bereitschaftsstatus: {client.status}')
+    print('Verfügbare Guilds:')
+    for guild in client.guilds:
+        print(f'- {guild.name} (ID: {guild.id})')
+
+@client.command(description="Testet die Bot-Funktionalität")
+async def test(ctx):
+    try:
+        rounded_latency = round(client.latency * 1000)  # Latenz in ms
+        embed = discord.Embed(
+            title="Bot Status",
+            color=discord.Color.green(),
+            description=f"""**Der bot ist Online**
+Ping: **{rounded_latency}ms**
+Online: **{get_runtime()}** Sekunden"""
+        )
+        await ctx.send(embed=embed)
+    except Exception as e:
+        print(f"Fehler beim Test-Kommando: {str(e)}")
+        await ctx.send("Ein Fehler ist aufgetreten!", ephemeral=True)
 
 
 
-client.run('BOT TOKEN')
+# Bot starten
+client.run(str(os.getenv("TOKEN")))
